@@ -1,0 +1,114 @@
+---
+title: "Kualitas Udara Di Jakarta"
+author: "AOL Val-Fasya-Ferdi"
+date: "2025-04-25"
+output: word_document
+---
+
+### Penjelasan Variabel
+
+Dataset ini memuat data kualitas udara dari beberapa stasiun di Jakarta selama tahun 2010 hingga 2021. Analisis ini bertujuan mendukung Tujuan Pembangunan Berkelanjutan (SDG) 13: Penanganan Perubahan Iklim, dengan memantau dampak aktivitas manusia terhadap kualitas udara.
+
+**Variabel penting:**
+- `tanggal`: Tanggal pencatatan data
+- `stasiun`: Lokasi pemantauan
+- `pm10`, `pm25`, `co`, `no2`, `so2`, `o3`: Parameter polutan
+- `critical`: Polutan dominan
+- `categori`: Kategori kualitas udara
+
+```{r}
+library(ggplot2)
+library(lubridate)
+library(dplyr)
+library(corrplot)
+library(data.table)
+
+# Load data
+dataraw <- read.csv("F:/Programming/.Language/R/AOL/Data Kaggle/ispu_dki_all.csv", header = TRUE)
+
+# Preprocessing
+dataraw$critical <- as.factor(dataraw$critical)
+dataraw$categori <- as.factor(dataraw$categori)
+dataraw$stasiun <- as.factor(dataraw$stasiun)
+dataraw$tanggal <- as.Date(dataraw$tanggal, "%Y-%m-%d")
+dataraw <- dataraw[complete.cases(dataraw[, c("pm10", "pm25", "so2", "co", "o3", "no2")]), ]
+
+# Fill missing pm25
+pm25_median <- median(dataraw$pm25, na.rm = TRUE)
+dataraw$pm25 <- nafill(dataraw$pm25, fill = pm25_median)
+
+# Extract tahun dan bulan
+dataraw$year <- year(dataraw$tanggal)
+dataraw$month <- factor(month(dataraw$tanggal), levels = 1:12,
+                        labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+```
+
+### Tren Polusi Tahunan
+
+```{r}
+ggplot(dataraw, aes(x = factor(year), y = pm25)) +
+  geom_boxplot(fill = "#1f77b4") +
+  labs(title = "Tren PM2.5 Tahunan di Jakarta", x = "Tahun", y = "PM2.5 (μg/m³)") +
+  theme_minimal()
+```
+
+**Insight:** Terlihat bahwa tingkat PM2.5 sempat meningkat tajam pada beberapa tahun, terutama saat aktivitas industri atau lalu lintas meningkat. Ini menunjukkan kontribusi signifikan terhadap perubahan iklim (SDG 13).
+
+---
+
+### Polusi Berdasarkan Bulan
+
+```{r}
+ggplot(dataraw, aes(x = month, y = co)) +
+  geom_boxplot(fill = "#ff7f0e") +
+  labs(title = "Rata-rata CO Berdasarkan Bulan", x = "Bulan", y = "Karbon Monoksida (ppm)") +
+  theme_minimal()
+```
+
+**Insight:** Konsentrasi CO cenderung tinggi pada musim kemarau, yang dapat dikaitkan dengan peningkatan penggunaan kendaraan bermotor dan berkurangnya kelembaban udara.
+
+---
+
+### Perbandingan Antar Stasiun
+
+```{r}
+ggplot(dataraw, aes(x = stasiun, y = pm25)) +
+  geom_boxplot(fill = "#2ca02c") +
+  labs(title = "Perbandingan PM2.5 antar Stasiun", x = "Stasiun", y = "PM2.5 (μg/m³)") +
+  theme_minimal()
+```
+
+**Insight:** Beberapa stasiun seperti Bundaran HI dan Kelapa Gading cenderung memiliki konsentrasi polusi yang lebih tinggi, menunjukkan area tersebut padat aktivitas manusia dan kendaraan.
+
+---
+
+### Korelasi Antar Polutan
+
+```{r}
+polutan <- dataraw[, c("pm10", "pm25", "co", "no2", "so2", "o3")]
+corrplot(cor(polutan, use = "complete.obs"), method = "circle", type = "upper")
+```
+
+**Insight:** Terlihat korelasi antara PM2.5 dengan CO dan NO2, menunjukkan bahwa sumber utama pencemar adalah kendaraan bermotor.
+
+---
+
+### Kategori Kualitas Udara
+
+```{r}
+ggplot(dataraw, aes(x = categori)) +
+  geom_bar(fill = "#d62728") +
+  labs(title = "Distribusi Kategori Kualitas Udara", x = "Kategori", y = "Jumlah Hari") +
+  theme_minimal()
+```
+
+**Insight:** Mayoritas hari tercatat dalam kategori sedang hingga tidak sehat. Ini menunjukkan perlunya tindakan mitigasi perubahan iklim di kota besar seperti Jakarta.
+
+---
+
+### Kesimpulan dan Relevansi terhadap SDG 13
+
+Analisis ini menunjukkan bahwa kualitas udara di Jakarta sering berada dalam kategori tidak sehat, dengan PM2.5 dan CO sebagai kontributor utama. Data ini mendukung urgensi SDG 13 untuk mempercepat upaya penanggulangan perubahan iklim melalui pengurangan emisi dan pengawasan kualitas udara secara ketat. Pemerintah dan masyarakat perlu mengambil langkah konkret untuk menjaga udara tetap bersih demi kesehatan dan keberlanjutan kota.
+
